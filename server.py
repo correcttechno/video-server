@@ -31,7 +31,7 @@ async def mjpeg(request):
 # Browser HTML
 async def index(request):
     # HTML dosyasını oku
-    file_path = os.path.join(os.path.dirname(__file__), "templates/index.html")
+    file_path = os.path.join(os.path.dirname(__file__), "templates/test.html")
     with open(file_path, "r", encoding="utf-8") as f:
         html = f.read()
     return web.Response(content_type="text/html", text=html)

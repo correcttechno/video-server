@@ -3,10 +3,10 @@ from aiohttp import web
 from aiortc import RTCPeerConnection, RTCSessionDescription
 from aiortc.contrib.media import MediaRelay
 import cv2
-import os
+
 pcs = set()
 relay = MediaRelay()
-latest_frame = None  # global frame
+latest_frame = None  # Browser'a gönderilecek en güncel frame
 
 # MJPEG stream handler
 async def mjpeg(request):
@@ -14,9 +14,7 @@ async def mjpeg(request):
     response = web.StreamResponse(
         status=200,
         reason='OK',
-        headers={
-            'Content-Type': 'multipart/x-mixed-replace; boundary=frame'
-        }
+        headers={'Content-Type': 'multipart/x-mixed-replace; boundary=frame'}
     )
     await response.prepare(request)
 
@@ -26,17 +24,15 @@ async def mjpeg(request):
             frame = jpeg.tobytes()
             await response.write(b"--frame\r\n")
             await response.write(b"Content-Type: image/jpeg\r\n\r\n" + frame + b"\r\n")
-        await asyncio.sleep(0.03)  # ~30 fps
+        await asyncio.sleep(0.03)  # 30 FPS
 
 # Browser HTML
 async def index(request):
-    # HTML dosyasını oku
-    file_path = os.path.join(os.path.dirname(__file__), "templates/test.html")
-    with open(file_path, "r", encoding="utf-8") as f:
+    with open("templates/test.html", "r", encoding="utf-8") as f:
         html = f.read()
     return web.Response(content_type="text/html", text=html)
 
-# WebRTC offer handler
+# WebRTC offer handler (client'tan gelen video)
 async def offer(request):
     global latest_frame
     params = await request.json()
@@ -49,17 +45,19 @@ async def offer(request):
         print("Track geldi:", track.kind)
         if track.kind == "video":
             local_video = relay.subscribe(track)
+
             async def update_frame():
                 global latest_frame
                 while True:
                     frame = await local_video.recv()
-                    latest_frame = frame.to_ndarray(format="bgr24")
+                    latest_frame = frame.to_ndarray(format="bgr24")  # sadece en güncel frame
             asyncio.ensure_future(update_frame())
 
     offer = RTCSessionDescription(sdp=params["sdp"], type=params["type"])
     await pc.setRemoteDescription(offer)
     answer = await pc.createAnswer()
     await pc.setLocalDescription(answer)
+
     return web.json_response(
         {"sdp": pc.localDescription.sdp, "type": pc.localDescription.type}
     )

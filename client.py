@@ -1,5 +1,6 @@
 import asyncio
 import cv2
+import numpy as np
 import requests
 from aiortc import RTCPeerConnection, VideoStreamTrack, RTCSessionDescription
 from av import VideoFrame
@@ -28,12 +29,15 @@ async def main():
     await pc.setLocalDescription(offer)
 
     response = requests.post(
-        "http://127.0.0.1:8080/offer", 
+        "http://127.0.0.1:8080/offer",
         json={"sdp": pc.localDescription.sdp, "type": pc.localDescription.type}
     )
     answer = response.json()
-    await pc.setRemoteDescription(RTCSessionDescription(sdp=answer["sdp"], type=answer["type"]))
+    await pc.setRemoteDescription(
+        RTCSessionDescription(sdp=answer["sdp"], type=answer["type"])
+    )
 
-    await asyncio.sleep(3600)
+    print("Video streaming başladı...")
+    await asyncio.sleep(3600)  # client açık kalsın
 
 asyncio.run(main())

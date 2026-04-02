@@ -3,7 +3,7 @@ from aiohttp import web
 from aiortc import RTCPeerConnection, RTCSessionDescription
 from aiortc.contrib.media import MediaRelay
 import cv2
-
+import os
 pcs = set()
 relay = MediaRelay()
 latest_frame = None  # global frame
@@ -30,15 +30,10 @@ async def mjpeg(request):
 
 # Browser HTML
 async def index(request):
-    html = """
-    <!DOCTYPE html>
-    <html>
-    <body>
-    <h2>Live Video Stream (MJPEG)</h2>
-    <img src="/mjpeg" width="640" height="480">
-    </body>
-    </html>
-    """
+    # HTML dosyasını oku
+    file_path = os.path.join(os.path.dirname(__file__), "templates/index.html")
+    with open(file_path, "r", encoding="utf-8") as f:
+        html = f.read()
     return web.Response(content_type="text/html", text=html)
 
 # WebRTC offer handler

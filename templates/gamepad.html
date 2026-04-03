@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<title>Gamepad Axis Monitor</title>
+<style>
+    body {
+        background: #111;
+        color: #0f0;
+        font-family: monospace;
+        padding: 20px;
+    }
+</style>
+</head>
+<body>
+
+<h2>Gamepad Axis Monitor</h2>
+<p>Gamepad bağla ve hareket ettir</p>
+
+<pre id="output">Bekleniyor...</pre>
+
+<script>
+let prevAxes = [];
+const threshold = 0.02;
+
+// 🔌 WebSocket
+let ws;
+let reconnectDelay = 0.5; // 1 saniye
+let maxDelay = 50000; // max 10 saniye
+
+function connectWebSocket() {
+    console.log("Baglanmaya calisiliyor...");
+    ws = new WebSocket("ws://video.correcttechno.com:2086");
+
+    ws.onopen = () => {
+        console.log("WebSocket baglandi");
+        reconnectDelay = 1000; // reset
+    };
+
+    ws.onclose = () => {
+        console.log("Baglanti koptu. Tekrar denenecek...");
+        setTimeout(connectWebSocket, reconnectDelay);
+
+        // exponential backoff
+        reconnectDelay = Math.min(reconnectDelay * 2, maxDelay);
+    };
+
+    ws.onerror = (err) => {
+        console.log("WebSocket hata:", err);
+        ws.close();
+    };
+}
+
+// ilk baglanti
+connectWebSocket();
+
+function gameLoop() {
+    const gp = navigator.getGamepads()[0];
+
+    if (gp) {
+        let changed = false;
+
+        gp.axes.forEach((val, i) => {
+            if (prevAxes[i] === undefined || Math.abs(prevAxes[i] - val) > threshold) {
+                changed = true;
+            }
+        });
+
+        if (changed) {
+            const axesText = gp.axes.map(v => v.toFixed(3)).join(" , ");
+            document.getElementById("output").textContent = axesText;
+
+            let axesArray = [...gp.axes];
+
+            // 📡 gonder
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({
+                    type: "gamepad",
+                    axes: axesArray,
+                    time: Date.now()
+                }));
+            }
+
+            prevAxes = axesArray;
+        }
+    }
+
+    requestAnimationFrame(gameLoop);
+}
+
+window.addEventListener("gamepadconnected", () => {
+    console.log("Gamepad bağlandı");
+    gameLoop();
+});
+</script>
+
+</body>
+</html>

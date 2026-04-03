@@ -32,6 +32,11 @@ async def index(request):
         html = f.read()
     return web.Response(content_type="text/html", text=html)
 
+async def test(request):
+    with open("templates/gamepad.html", "r", encoding="utf-8") as f:
+        html = f.read()
+    return web.Response(content_type="text/html", text=html)
+
 # WebRTC offer handler (client'tan gelen video)
 async def offer(request):
     global latest_frame
@@ -66,5 +71,6 @@ app = web.Application()
 app.router.add_get("/", index)
 app.router.add_get("/mjpeg", mjpeg)
 app.router.add_post("/offer", offer)
+app.router.add_get("/test", test)
 
 web.run_app(app, host="0.0.0.0", port=8080)

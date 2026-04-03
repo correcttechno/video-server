@@ -29,7 +29,7 @@ async def main():
     await pc.setLocalDescription(offer)
 
     response = requests.post(
-        "http://127.0.0.1:8080/offer",
+        "http://video.correcttechno.com:8080/offer",
         json={"sdp": pc.localDescription.sdp, "type": pc.localDescription.type}
     )
     answer = response.json()

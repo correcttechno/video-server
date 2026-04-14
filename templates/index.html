@@ -5,15 +5,12 @@
 <title>Drone HUD</title>
 
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
-
 body, html {
     margin: 0;
-    padding: 0;
     height: 100%;
-    font-family: 'Share Tech Mono', monospace;
     background: black;
     color: #0f0;
+    font-family: monospace;
     overflow: hidden;
 }
 
@@ -28,82 +25,58 @@ body, html {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    z-index: 1;
 }
 
+/* HUD */
 .overlay {
     position: absolute;
     width: 100%;
     height: 100%;
     z-index: 10;
-    pointer-events: none;
 }
 
-/* HUD boxes */
-.box {
+/* TEK PANEL */
+.panel {
     position: absolute;
-    border: 1px solid #0f0;
-    padding: 10px;
-    background: rgba(0, 20, 0, 0.6);
-    font-size: 14px;
+    top: 10px;
+    left: 10px;
+    border: 1px solid lime;
+    padding: 15px;
+    background: rgba(0,20,0,0.7);
     border-radius: 6px;
+    font-size: 14px;
+    min-width: 220px;
 }
 
-.flight { top: 10px; left: 10px; }
-.system { top: 10px; right: 10px; }
-.imu { bottom: 10px; left: 10px; }
-.gamepad-box { bottom: 10px; right: 10px; }
-
-/* Compass */
+/* compass */
 #compass {
     position: absolute;
     top: 50%;
     right: 20px;
-    transform: translateY(-50%);
     font-size: 40px;
+    transform: translateY(-50%);
 }
 
-/* Joystick */
+/* joystick */
 .stick {
     position: absolute;
     width: 80px;
     height: 80px;
-    border: 2px solid #0f0;
+    border: 2px solid lime;
     border-radius: 50%;
 }
 
-#stickL { bottom: 120px; left: 50px; }
-#stickR { bottom: 120px; right: 50px; }
+#stickL { bottom: 100px; left: 50px; }
+#stickR { bottom: 100px; right: 50px; }
 
 .dot {
-    position: absolute;
     width: 20px;
     height: 20px;
     background: lime;
     border-radius: 50%;
+    position: absolute;
     top: 30px;
     left: 30px;
-}
-
-/* Map */
-.map-overlay {
-    position: absolute;
-    bottom: 10%;
-    right: 2%;
-    width: 220px;
-    height: 130px;
-    background: #001100;
-    border: 1px solid #0f0;
-}
-
-/* HUD effect */
-.overlay::after {
-    content: "";
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    border: 2px solid rgba(0,255,0,0.2);
-    box-shadow: inset 0 0 40px rgba(0,255,0,0.1);
 }
 </style>
 </head>
@@ -115,34 +88,24 @@ body, html {
 
 <div class="overlay">
 
-<!-- FLIGHT -->
-<div class="box flight">
-    <h3>FLIGHT</h3>
-    Alt: <span id="alt">0</span> m<br>
-    Speed: <span id="speed">0</span> km/h<br>
-    Heading: <span id="heading">0</span>°<br>
-    Yaw: <span id="yaw">0</span>
-</div>
+<!-- TEK PANEL -->
+<div class="panel">
+    <b>FLIGHT</b><br>
+    Roll: <span id="roll">0</span><br>
+    Pitch: <span id="pitch">0</span><br>
+    Yaw: <span id="yaw">0</span><br><br>
 
-<!-- SYSTEM -->
-<div class="box system">
-    <h3>SYSTEM</h3>
-    Battery: <span id="battery">0%</span><br>
-    Voltage: <span id="voltage">0</span> V<br>
-    GPS: <span id="gps">0,0</span><br>
-    Sats: <span id="sats">0</span>
-</div>
+    <b>GPS</b><br>
+    Lat: <span id="lat">0</span><br>
+    Lon: <span id="lon">0</span><br>
+    Sats: <span id="sats">0</span><br>
+    Fix: <span id="fix">0</span><br><br>
 
-<!-- IMU -->
-<div class="box imu">
-    <h3>IMU</h3>
-    Accel: <span id="accel">0,0,0</span><br>
-    Gyro: <span id="gyro">0,0,0</span>
-</div>
+    <b>SYSTEM</b><br>
+    Battery: <span id="battery">N/A</span><br>
+    Voltage: <span id="voltage">0</span><br><br>
 
-<!-- GAMEPAD DATA -->
-<div class="box gamepad-box">
-    <h3>GAMEPAD</h3>
+    <b>GAMEPAD</b><br>
     LX: <span id="lx">0</span><br>
     LY: <span id="ly">0</span><br>
     RX: <span id="rx">0</span><br>
@@ -152,19 +115,15 @@ body, html {
 <!-- Compass -->
 <div id="compass">▲</div>
 
-<!-- Joystick visual -->
-<!-- <div id="stickL" class="stick"><div class="dot"></div></div>
+<!-- Joystick -->
+<div id="stickL" class="stick"><div class="dot"></div></div>
 <div id="stickR" class="stick"><div class="dot"></div></div>
- -->
-<!-- Map -->
-<!-- <div class="map-overlay"></div>
- -->
+
 </div>
 </div>
 
 <script>
 let ws;
-let reconnectDelay = 1000;
 let prevAxes = [];
 const threshold = 0.02;
 
@@ -172,66 +131,55 @@ const threshold = 0.02;
 function connectWS() {
     ws = new WebSocket("ws://video.correcttechno.com:2086");
 
-    ws.onopen = () => {
-        console.log("WS connected");
-        reconnectDelay = 1000;
-    };
-
     ws.onmessage = (e) => {
         const msg = JSON.parse(e.data);
-        console.log(msg);
         if (msg.type !== "telemetry") return;
 
         const d = msg.data;
 
-        document.getElementById("alt").innerText = d.gps.alt;
-        document.getElementById("speed").innerText = (d.vfr.groundspeed * 3.6).toFixed(1);
-        document.getElementById("heading").innerText = d.vfr.heading;
+        // FLIGHT
+        document.getElementById("roll").innerText = d.attitude.roll.toFixed(2);
+        document.getElementById("pitch").innerText = d.attitude.pitch.toFixed(2);
         document.getElementById("yaw").innerText = d.attitude.yaw.toFixed(2);
 
+        // GPS
+        document.getElementById("lat").innerText = d.gps.lat.toFixed(6);
+        document.getElementById("lon").innerText = d.gps.lon.toFixed(6);
+        document.getElementById("sats").innerText = d.gps.sats;
+        document.getElementById("fix").innerText = d.gps.fix;
+
+        // SYSTEM
         document.getElementById("battery").innerText =
             d.battery.percent >= 0 ? d.battery.percent + "%" : "N/A";
 
         document.getElementById("voltage").innerText = d.battery.voltage;
-        document.getElementById("gps").innerText = d.gps.lat + ", " + d.gps.lon;
-        document.getElementById("sats").innerText = d.gps.sats;
 
-        document.getElementById("accel").innerText =
-            `${d.imu.accel_x.toFixed(2)}, ${d.imu.accel_y.toFixed(2)}, ${d.imu.accel_z.toFixed(2)}`;
-
-        document.getElementById("gyro").innerText =
-            `${d.imu.gyro_x.toFixed(3)}, ${d.imu.gyro_y.toFixed(3)}, ${d.imu.gyro_z.toFixed(3)}`;
-
+        // COMPASS
+        let heading = d.mag.heading || d.attitude.yaw;
         document.getElementById("compass").style.transform =
-            `translateY(-50%) rotate(${d.vfr.heading}deg)`;
+            `translateY(-50%) rotate(${heading}deg)`;
     };
-
-    ws.onclose = () => {
-        setTimeout(connectWS, reconnectDelay);
-        reconnectDelay = Math.min(reconnectDelay * 2, 10000);
-    };
-
-    ws.onerror = () => ws.close();
 }
 
 connectWS();
 
-// Joystick movement
+// joystick movement
 function moveStick(id, x, y) {
-   /*  const stick = document.querySelector(`#${id} .dot`);
+    const dot = document.querySelector(`#${id} .dot`);
     const range = 25;
 
-    stick.style.left = (30 + x * range) + "px";
-    stick.style.top = (30 + y * range) + "px"; */
+    dot.style.left = (30 + x * range) + "px";
+    dot.style.top = (30 + y * range) + "px";
 }
 
-// Gamepad loop
+// gamepad
 function gameLoop() {
     const gp = navigator.getGamepads()[0];
 
     if (gp) {
         let axes = gp.axes;
 
+        // ekranda göstər
         document.getElementById("lx").innerText = axes[0].toFixed(2);
         document.getElementById("ly").innerText = axes[1].toFixed(2);
         document.getElementById("rx").innerText = axes[2].toFixed(2);
@@ -260,10 +208,7 @@ function gameLoop() {
     requestAnimationFrame(gameLoop);
 }
 
-window.addEventListener("gamepadconnected", () => {
-    console.log("Gamepad connected");
-    gameLoop();
-});
+window.addEventListener("gamepadconnected", gameLoop);
 </script>
 
 </body>

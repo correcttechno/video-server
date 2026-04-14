@@ -50,7 +50,7 @@ async def mjpeg(request):
 
 # ================= HTML =================
 async def index(request):
-    with open("templates/test.html", "r", encoding="utf-8") as f:
+    with open("templates/index.html", "r", encoding="utf-8") as f:
         html = f.read()
     return web.Response(content_type="text/html", text=html)
 

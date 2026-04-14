@@ -22,3 +22,4 @@ def kill_port(port):
 
 # İstifadə:
 kill_port(8080)   # Flask default portu
+kill_port(2086)

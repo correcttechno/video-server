@@ -1,7 +1,237 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Military Drone HUD Interface</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+
+        body,
+        html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            font-family: 'Share Tech Mono', monospace;
+            background-color: #000;
+            color: #0f0;
+            overflow: hidden;
+        }
+
+        .video-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+
+        #videoFeed {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            filter: brightness(0.9) contrast(1.2);
+        }
+
+        .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+
+
+
+
+        /* Map overlay */
+        .map-overlay {
+            position: absolute;
+            bottom: 15%;
+            right: 2%;
+            width: 240px;
+            max-width: 28%;
+            height: 140px;
+            max-height: 22%;
+            background: #002200 url('https://via.placeholder.com/240x140?text=MAP') no-repeat center center;
+            background-size: cover;
+            border: 1px solid #0f0;
+            border-radius: 5px;
+            pointer-events: auto;
+        }
+
+
+
+        .gamepad {
+            text-align: center;
+        }
+    </style>
+</head>
+
 <body>
-<h2>Live Video Stream (MJPEG)</h2>
-<img src="/mjpeg" width="640" height="480">
+
+    <div class="video-container">
+        <img id="videoFeed" src="/mjpeg" alt="Live Drone Feed">
+
+        <div class="overlay">
+            <div class="gamepad">
+                <p>Gamepad qoşuldu</p>
+                <pre id="output">Gözlənilir...</pre>
+            </div>
+
+            <div class="box">
+                <h2>FLIGHT</h2>
+                <p>Altitude: <span id="alt">0</span> m</p>
+                <p>Speed: <span id="speed">0</span> km/h</p>
+                <p>Heading: <span id="heading">0</span>°</p>
+                <p>Yaw: <span id="yaw">0</span></p>
+            </div>
+
+            <div class="box">
+                <h2>SYSTEM</h2>
+                <p>Battery: <span id="battery">0%</span></p>
+                <p>Voltage: <span id="voltage">0</span> V</p>
+                <p>GPS: <span id="gps">0,0</span></p>
+                <p>Satellites: <span id="sats">0</span></p>
+            </div>
+
+            <div class="box">
+                <h2>IMU</h2>
+                <p>Accel: <span id="accel">0,0,0</span></p>
+                <p>Gyro: <span id="gyro">0,0,0</span></p>
+            </div>
+
+            <!-- Map overlay -->
+            <div class="map-overlay">
+                <div id="drone-marker"></div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        function openTab(tabId) {
+            const tabs = document.querySelectorAll('.tab-content');
+            tabs.forEach(tab => tab.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+
+            const buttons = document.querySelectorAll('.tab-buttons button');
+            buttons.forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+        }
+
+
+    </script>
+
+
+    <script>
+        let prevAxes = [];
+        const threshold = 0.02;
+
+        // 🔌 WebSocket
+        let ws;
+        let reconnectDelay = 0.5; // 1 saniye
+        let maxDelay = 50000; // max 10 saniye
+
+        function connectWebSocket() {
+            console.log("Baglanmaya calisiliyor...");
+            ws = new WebSocket("ws://video.correcttechno.com:2086");
+
+            ws.onopen = () => {
+                console.log("WebSocket baglandi");
+                reconnectDelay = 1000; // reset
+            };
+
+            ws.onmessage = (e) => {
+                const msg = JSON.parse(e.data);
+
+                if (msg.type !== "telemetry") return;
+
+                const d = msg.data;
+
+                // ===== FLIGHT =====
+                document.getElementById("alt").innerText = d.gps.alt;
+                document.getElementById("speed").innerText = (d.vfr.groundspeed * 3.6).toFixed(1);
+                document.getElementById("heading").innerText = d.vfr.heading;
+                document.getElementById("yaw").innerText = d.attitude.yaw.toFixed(2);
+
+                // ===== SYSTEM =====
+                document.getElementById("battery").innerText =
+                    d.battery.percent >= 0 ? d.battery.percent + "%" : "N/A";
+
+                document.getElementById("voltage").innerText = d.battery.voltage;
+
+                document.getElementById("gps").innerText =
+                    d.gps.lat + ", " + d.gps.lon;
+
+                document.getElementById("sats").innerText = d.gps.sats;
+
+                // ===== IMU =====
+                document.getElementById("accel").innerText =
+                    `${d.imu.accel_x.toFixed(2)}, ${d.imu.accel_y.toFixed(2)}, ${d.imu.accel_z.toFixed(2)}`;
+
+                document.getElementById("gyro").innerText =
+                    `${d.imu.gyro_x.toFixed(3)}, ${d.imu.gyro_y.toFixed(3)}, ${d.imu.gyro_z.toFixed(3)}`;
+            };
+
+
+            ws.onclose = () => {
+                console.log("Baglanti koptu. Tekrar denenecek...");
+                setTimeout(connectWebSocket, reconnectDelay);
+
+                // exponential backoff
+                reconnectDelay = Math.min(reconnectDelay * 2, maxDelay);
+            };
+
+            ws.onerror = (err) => {
+                console.log("WebSocket hata:", err);
+                ws.close();
+            };
+        }
+
+        // ilk baglanti
+        connectWebSocket();
+
+        function gameLoop() {
+            const gp = navigator.getGamepads()[0];
+
+            if (gp) {
+                let changed = false;
+
+                gp.axes.forEach((val, i) => {
+                    if (prevAxes[i] === undefined || Math.abs(prevAxes[i] - val) > threshold) {
+                        changed = true;
+                    }
+                });
+
+                if (true) {
+                    const axesText = gp.axes.map(v => v.toFixed(3)).join(" , ");
+                    document.getElementById("output").textContent = axesText;
+
+                    let axesArray = [...gp.axes];
+
+                    // 📡 gonder
+                    if (ws && ws.readyState === WebSocket.OPEN) {
+                        ws.send(JSON.stringify({
+                            type: "gamepad",
+                            axes: axesArray,
+                            time: Date.now()
+                        }));
+                    }
+
+                    prevAxes = axesArray;
+                }
+            }
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        window.addEventListener("gamepadconnected", () => {
+            console.log("Gamepad bağlandı");
+            gameLoop();
+        });
+    </script>
+
 </body>
+
 </html>

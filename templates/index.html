@@ -1,237 +1,269 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-    <meta charset="UTF-8">
-    <title>Military Drone HUD Interface</title>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+<meta charset="UTF-8">
+<title>Drone HUD</title>
 
-        body,
-        html {
-            margin: 0;
-            padding: 0;
-            height: 100%;
-            font-family: 'Share Tech Mono', monospace;
-            background-color: #000;
-            color: #0f0;
-            overflow: hidden;
-        }
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
 
-        .video-container {
-            position: relative;
-            width: 100%;
-            height: 100%;
-        }
+body, html {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    font-family: 'Share Tech Mono', monospace;
+    background: black;
+    color: #0f0;
+    overflow: hidden;
+}
 
-        #videoFeed {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            filter: brightness(0.9) contrast(1.2);
-        }
+.video-container {
+    position: relative;
+    width: 100%;
+    height: 100%;
+}
 
-        .overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-        }
+#videoFeed {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    z-index: 1;
+}
 
+.overlay {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    z-index: 10;
+    pointer-events: none;
+}
 
+/* HUD boxes */
+.box {
+    position: absolute;
+    border: 1px solid #0f0;
+    padding: 10px;
+    background: rgba(0, 20, 0, 0.6);
+    font-size: 14px;
+    border-radius: 6px;
+}
 
+.flight { top: 10px; left: 10px; }
+.system { top: 10px; right: 10px; }
+.imu { bottom: 10px; left: 10px; }
+.gamepad-box { bottom: 10px; right: 10px; }
 
+/* Compass */
+#compass {
+    position: absolute;
+    top: 50%;
+    right: 20px;
+    transform: translateY(-50%);
+    font-size: 40px;
+}
 
-        /* Map overlay */
-        .map-overlay {
-            position: absolute;
-            bottom: 15%;
-            right: 2%;
-            width: 240px;
-            max-width: 28%;
-            height: 140px;
-            max-height: 22%;
-            background: #002200 url('https://via.placeholder.com/240x140?text=MAP') no-repeat center center;
-            background-size: cover;
-            border: 1px solid #0f0;
-            border-radius: 5px;
-            pointer-events: auto;
-        }
+/* Joystick */
+.stick {
+    position: absolute;
+    width: 80px;
+    height: 80px;
+    border: 2px solid #0f0;
+    border-radius: 50%;
+}
 
+#stickL { bottom: 120px; left: 50px; }
+#stickR { bottom: 120px; right: 50px; }
 
+.dot {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    background: lime;
+    border-radius: 50%;
+    top: 30px;
+    left: 30px;
+}
 
-        .gamepad {
-            text-align: center;
-        }
-    </style>
+/* Map */
+.map-overlay {
+    position: absolute;
+    bottom: 10%;
+    right: 2%;
+    width: 220px;
+    height: 130px;
+    background: #001100;
+    border: 1px solid #0f0;
+}
+
+/* HUD effect */
+.overlay::after {
+    content: "";
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    border: 2px solid rgba(0,255,0,0.2);
+    box-shadow: inset 0 0 40px rgba(0,255,0,0.1);
+}
+</style>
 </head>
 
 <body>
 
-    <div class="video-container">
-        <img id="videoFeed" src="/mjpeg" alt="Live Drone Feed">
+<div class="video-container">
+<img id="videoFeed" src="/mjpeg">
 
-        <div class="overlay">
-            <div class="gamepad">
-                <p>Gamepad qoşuldu</p>
-                <pre id="output">Gözlənilir...</pre>
-            </div>
+<div class="overlay">
 
-            <div class="box">
-                <h2>FLIGHT</h2>
-                <p>Altitude: <span id="alt">0</span> m</p>
-                <p>Speed: <span id="speed">0</span> km/h</p>
-                <p>Heading: <span id="heading">0</span>°</p>
-                <p>Yaw: <span id="yaw">0</span></p>
-            </div>
+<!-- FLIGHT -->
+<div class="box flight">
+    <h3>FLIGHT</h3>
+    Alt: <span id="alt">0</span> m<br>
+    Speed: <span id="speed">0</span> km/h<br>
+    Heading: <span id="heading">0</span>°<br>
+    Yaw: <span id="yaw">0</span>
+</div>
 
-            <div class="box">
-                <h2>SYSTEM</h2>
-                <p>Battery: <span id="battery">0%</span></p>
-                <p>Voltage: <span id="voltage">0</span> V</p>
-                <p>GPS: <span id="gps">0,0</span></p>
-                <p>Satellites: <span id="sats">0</span></p>
-            </div>
+<!-- SYSTEM -->
+<div class="box system">
+    <h3>SYSTEM</h3>
+    Battery: <span id="battery">0%</span><br>
+    Voltage: <span id="voltage">0</span> V<br>
+    GPS: <span id="gps">0,0</span><br>
+    Sats: <span id="sats">0</span>
+</div>
 
-            <div class="box">
-                <h2>IMU</h2>
-                <p>Accel: <span id="accel">0,0,0</span></p>
-                <p>Gyro: <span id="gyro">0,0,0</span></p>
-            </div>
+<!-- IMU -->
+<div class="box imu">
+    <h3>IMU</h3>
+    Accel: <span id="accel">0,0,0</span><br>
+    Gyro: <span id="gyro">0,0,0</span>
+</div>
 
-            <!-- Map overlay -->
-            <div class="map-overlay">
-                <div id="drone-marker"></div>
-            </div>
+<!-- GAMEPAD DATA -->
+<div class="box gamepad-box">
+    <h3>GAMEPAD</h3>
+    LX: <span id="lx">0</span><br>
+    LY: <span id="ly">0</span><br>
+    RX: <span id="rx">0</span><br>
+    RY: <span id="ry">0</span>
+</div>
 
-        </div>
-    </div>
+<!-- Compass -->
+<div id="compass">▲</div>
 
-    <script>
-        function openTab(tabId) {
-            const tabs = document.querySelectorAll('.tab-content');
-            tabs.forEach(tab => tab.classList.remove('active'));
-            document.getElementById(tabId).classList.add('active');
+<!-- Joystick visual -->
+<!-- <div id="stickL" class="stick"><div class="dot"></div></div>
+<div id="stickR" class="stick"><div class="dot"></div></div>
+ -->
+<!-- Map -->
+<!-- <div class="map-overlay"></div>
+ -->
+</div>
+</div>
 
-            const buttons = document.querySelectorAll('.tab-buttons button');
-            buttons.forEach(btn => btn.classList.remove('active'));
-            event.target.classList.add('active');
-        }
+<script>
+let ws;
+let reconnectDelay = 1000;
+let prevAxes = [];
+const threshold = 0.02;
 
+// WebSocket
+function connectWS() {
+    ws = new WebSocket("ws://video.correcttechno.com:2086");
 
-    </script>
+    ws.onopen = () => {
+        console.log("WS connected");
+        reconnectDelay = 1000;
+    };
 
+    ws.onmessage = (e) => {
+        const msg = JSON.parse(e.data);
+        if (msg.type !== "telemetry") return;
 
-    <script>
-        let prevAxes = [];
-        const threshold = 0.02;
+        const d = msg.data;
 
-        // 🔌 WebSocket
-        let ws;
-        let reconnectDelay = 0.5; // 1 saniye
-        let maxDelay = 50000; // max 10 saniye
+        document.getElementById("alt").innerText = d.gps.alt;
+        document.getElementById("speed").innerText = (d.vfr.groundspeed * 3.6).toFixed(1);
+        document.getElementById("heading").innerText = d.vfr.heading;
+        document.getElementById("yaw").innerText = d.attitude.yaw.toFixed(2);
 
-        function connectWebSocket() {
-            console.log("Baglanmaya calisiliyor...");
-            ws = new WebSocket("ws://video.correcttechno.com:2086");
+        document.getElementById("battery").innerText =
+            d.battery.percent >= 0 ? d.battery.percent + "%" : "N/A";
 
-            ws.onopen = () => {
-                console.log("WebSocket baglandi");
-                reconnectDelay = 1000; // reset
-            };
+        document.getElementById("voltage").innerText = d.battery.voltage;
+        document.getElementById("gps").innerText = d.gps.lat + ", " + d.gps.lon;
+        document.getElementById("sats").innerText = d.gps.sats;
 
-            ws.onmessage = (e) => {
-                const msg = JSON.parse(e.data);
+        document.getElementById("accel").innerText =
+            `${d.imu.accel_x.toFixed(2)}, ${d.imu.accel_y.toFixed(2)}, ${d.imu.accel_z.toFixed(2)}`;
 
-                if (msg.type !== "telemetry") return;
+        document.getElementById("gyro").innerText =
+            `${d.imu.gyro_x.toFixed(3)}, ${d.imu.gyro_y.toFixed(3)}, ${d.imu.gyro_z.toFixed(3)}`;
 
-                const d = msg.data;
+        document.getElementById("compass").style.transform =
+            `translateY(-50%) rotate(${d.vfr.heading}deg)`;
+    };
 
-                // ===== FLIGHT =====
-                document.getElementById("alt").innerText = d.gps.alt;
-                document.getElementById("speed").innerText = (d.vfr.groundspeed * 3.6).toFixed(1);
-                document.getElementById("heading").innerText = d.vfr.heading;
-                document.getElementById("yaw").innerText = d.attitude.yaw.toFixed(2);
+    ws.onclose = () => {
+        setTimeout(connectWS, reconnectDelay);
+        reconnectDelay = Math.min(reconnectDelay * 2, 10000);
+    };
 
-                // ===== SYSTEM =====
-                document.getElementById("battery").innerText =
-                    d.battery.percent >= 0 ? d.battery.percent + "%" : "N/A";
+    ws.onerror = () => ws.close();
+}
 
-                document.getElementById("voltage").innerText = d.battery.voltage;
+connectWS();
 
-                document.getElementById("gps").innerText =
-                    d.gps.lat + ", " + d.gps.lon;
+// Joystick movement
+function moveStick(id, x, y) {
+   /*  const stick = document.querySelector(`#${id} .dot`);
+    const range = 25;
 
-                document.getElementById("sats").innerText = d.gps.sats;
+    stick.style.left = (30 + x * range) + "px";
+    stick.style.top = (30 + y * range) + "px"; */
+}
 
-                // ===== IMU =====
-                document.getElementById("accel").innerText =
-                    `${d.imu.accel_x.toFixed(2)}, ${d.imu.accel_y.toFixed(2)}, ${d.imu.accel_z.toFixed(2)}`;
+// Gamepad loop
+function gameLoop() {
+    const gp = navigator.getGamepads()[0];
 
-                document.getElementById("gyro").innerText =
-                    `${d.imu.gyro_x.toFixed(3)}, ${d.imu.gyro_y.toFixed(3)}, ${d.imu.gyro_z.toFixed(3)}`;
-            };
+    if (gp) {
+        let axes = gp.axes;
 
+        document.getElementById("lx").innerText = axes[0].toFixed(2);
+        document.getElementById("ly").innerText = axes[1].toFixed(2);
+        document.getElementById("rx").innerText = axes[2].toFixed(2);
+        document.getElementById("ry").innerText = axes[3].toFixed(2);
 
-            ws.onclose = () => {
-                console.log("Baglanti koptu. Tekrar denenecek...");
-                setTimeout(connectWebSocket, reconnectDelay);
+        moveStick("stickL", axes[0], axes[1]);
+        moveStick("stickR", axes[2], axes[3]);
 
-                // exponential backoff
-                reconnectDelay = Math.min(reconnectDelay * 2, maxDelay);
-            };
-
-            ws.onerror = (err) => {
-                console.log("WebSocket hata:", err);
-                ws.close();
-            };
-        }
-
-        // ilk baglanti
-        connectWebSocket();
-
-        function gameLoop() {
-            const gp = navigator.getGamepads()[0];
-
-            if (gp) {
-                let changed = false;
-
-                gp.axes.forEach((val, i) => {
-                    if (prevAxes[i] === undefined || Math.abs(prevAxes[i] - val) > threshold) {
-                        changed = true;
-                    }
-                });
-
-                if (true) {
-                    const axesText = gp.axes.map(v => v.toFixed(3)).join(" , ");
-                    document.getElementById("output").textContent = axesText;
-
-                    let axesArray = [...gp.axes];
-
-                    // 📡 gonder
-                    if (ws && ws.readyState === WebSocket.OPEN) {
-                        ws.send(JSON.stringify({
-                            type: "gamepad",
-                            axes: axesArray,
-                            time: Date.now()
-                        }));
-                    }
-
-                    prevAxes = axesArray;
-                }
+        let changed = false;
+        axes.forEach((val, i) => {
+            if (prevAxes[i] === undefined || Math.abs(prevAxes[i] - val) > threshold) {
+                changed = true;
             }
-
-            requestAnimationFrame(gameLoop);
-        }
-
-        window.addEventListener("gamepadconnected", () => {
-            console.log("Gamepad bağlandı");
-            gameLoop();
         });
-    </script>
+
+        if (changed && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({
+                type: "gamepad",
+                axes: [...axes]
+            }));
+
+            prevAxes = [...axes];
+        }
+    }
+
+    requestAnimationFrame(gameLoop);
+}
+
+window.addEventListener("gamepadconnected", () => {
+    console.log("Gamepad connected");
+    gameLoop();
+});
+</script>
 
 </body>
-
 </html>

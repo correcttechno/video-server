@@ -56,7 +56,7 @@ async def index(request):
 
 
 async def test(request):
-    with open("templates/gamepad.html", "r", encoding="utf-8") as f:
+    with open("templates/test.html", "r", encoding="utf-8") as f:
         html = f.read()
     return web.Response(content_type="text/html", text=html)
 

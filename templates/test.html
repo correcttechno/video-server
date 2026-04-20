@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Drone PFD - Sabit Arka Plan</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #00050a;
+            font-family: 'Orbitron', sans-serif;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .pfd {
+            width: 1200px;
+            height: 700px;
+            background: linear-gradient(#0b121a, #05080f);
+            border: 20px solid #1a2533;
+            border-radius: 18px;
+            box-shadow: 0 0 80px rgba(0, 240, 200, 0.45),
+                inset 0 0 100px rgba(0, 0, 0, 0.95);
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* ====================== ATTITUDE INDICATOR ====================== */
+        .attitude-container {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            width: 420px;
+            height: 420px;
+            border: 22px solid #bbddff;
+            border-radius: 50%;
+            background: #0a0f17;
+            box-shadow: 0 0 60px #00ffcc,
+                inset 0 0 70px rgba(255, 255, 255, 0.12);
+            overflow: hidden;
+        }
+
+        /* Sabit Arka Plan (Gökyüzü + Toprak) */
+        .sky-ground {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(to bottom, #001122 50%, #3a2a1f 50%);
+            z-index: 1;
+        }
+
+        .ground-detail {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            height: 50%;
+            background: repeating-linear-gradient(35deg,
+                    rgba(80, 100, 50, 0.35) 0px,
+                    rgba(80, 100, 50, 0.35) 18px,
+                    transparent 18px,
+                    transparent 40px);
+            opacity: 0.7;
+        }
+
+        /* Hareket Eden Kısım */
+        .moving-layer {
+            position: absolute;
+            width: 100%;
+            height: 300%;
+            top: -100%;
+            z-index: 2;
+            transition: transform 0.08s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+
+        .horizon-line {
+            position: absolute;
+            top: 50%;
+            left: 0;
+            width: 100%;
+            height: 7px;
+            background: #ffee77;
+            box-shadow: 0 0 25px #ffee00;
+            z-index: 5;
+        }
+
+        .pitch-ladder {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            color: #ffffff;
+            font-size: 19px;
+            font-weight: 500;
+            text-shadow: 0 0 10px #000;
+            pointer-events: none;
+            padding: 0 55px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .aircraft-symbol {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 170px;
+            height: 48px;
+            z-index: 10;
+        }
+
+        .aircraft-symbol::before {
+            content: '';
+            position: absolute;
+            top: 20px;
+            left: -40px;
+            width: 250px;
+            height: 8px;
+            background: #ffff00;
+            box-shadow: 0 0 18px #ffff00;
+        }
+
+        .aircraft-symbol::after {
+            content: '✈';
+            position: absolute;
+            top: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 48px;
+            color: #ffff00;
+            text-shadow: 0 0 20px #ffff00;
+        }
+
+        /* Diğer elemanlar */
+        .data {
+            position: absolute;
+            background: rgba(8, 22, 28, 0.96);
+            border: 3px solid #00e6c3;
+            color: #00ffdd;
+            padding: 14px 26px;
+            border-radius: 8px;
+            font-size: 26px;
+            font-weight: 600;
+            text-align: center;
+            box-shadow: 0 0 25px rgba(0, 230, 195, 0.5);
+            min-width: 160px;
+        }
+
+        .roll-data {
+            top: 45px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .pitch-data {
+            bottom: 135px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .heading {
+            position: absolute;
+            bottom: 45px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(5, 15, 25, 0.95);
+            border: 4px solid #00ffdd;
+            color: #00ffff;
+            font-size: 46px;
+            padding: 10px 50px;
+            border-radius: 10px;
+            letter-spacing: 6px;
+            box-shadow: 0 0 30px rgba(0, 255, 220, 0.4);
+        }
+
+        .status {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            padding: 12px 20px;
+            background: rgba(0, 0, 0, 0.8);
+            border: 2px solid #00ffcc;
+            border-radius: 6px;
+            color: #00ffcc;
+            font-size: 16px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="pfd">
+        <div class="attitude-container">
+            <!-- Sabit Arka Plan -->
+            <div class="sky-ground">
+                <div class="ground-detail"></div>
+            </div>
+
+            <!-- Hareket Eden Katman (Pitch + Horizon) -->
+            <div class="moving-layer" id="movingLayer">
+                <div class="horizon-line"></div>
+                <div class="pitch-ladder" id="pitchLadder">
+                    <div>+30°</div>
+                    <div>+20°</div>
+                    <div>+10°</div>
+                    <div style="height:60px"></div>
+                    <div>0°</div>
+                    <div style="height:60px"></div>
+                    <div>-10°</div>
+                    <div>-20°</div>
+                    <div>-30°</div>
+                </div>
+            </div>
+
+            <!-- Sabit Uçak Sembolü -->
+            <div class="aircraft-symbol"></div>
+        </div>
+
+        <div class="data roll-data">ROLL <span id="rollValue">0.0</span>°</div>
+        <div class="data pitch-data">PITCH <span id="pitchValue">0.0</span>°</div>
+        <div class="heading">HDG <span id="headingValue">000</span>°</div>
+
+        <div class="status" id="status">Bağlanıyor...</div>
+    </div>
+
+    <script>
+        let roll = 0, pitch = 0, yaw = 0;
+        let ws = null;
+
+        const movingLayer = document.getElementById('movingLayer');
+        const rollEl = document.getElementById('rollValue');
+        const pitchEl = document.getElementById('pitchValue');
+        const headingEl = document.getElementById('headingValue');
+        const statusEl = document.getElementById('status');
+
+        function updateUI() {
+            // Sadece hareket eden katman dönsün ve aşağı-yukarı kaydırılsın
+            const rotateZ = -roll;
+            const translateY = pitch * 5.5;     // pitch hareket hassasiyeti
+
+            movingLayer.style.transform = `rotate(${rotateZ}deg) translateY(${translateY}px)`;
+
+            rollEl.textContent = roll.toFixed(1);
+            pitchEl.textContent = pitch.toFixed(1);
+            headingEl.textContent = (yaw * (180 / Math.PI) || 0).toFixed(0).padStart(3, '0');
+        }
+
+        function connectWebSocket() {
+            ws = new WebSocket("ws://video.correcttechno.com:2086");
+
+            ws.onopen = () => {
+                statusEl.textContent = "✅ Bağlandı - Veri akıyor";
+                statusEl.style.borderColor = "#00ff00";
+            };
+
+            ws.onmessage = (event) => {
+                try {
+                    var data = JSON.parse(event.data);
+                    data = data.data;
+                    if (data.attitude) {
+                        roll = data.attitude.roll || 0;
+                        pitch = data.attitude.pitch || 0;
+                        yaw = data.attitude.yaw || 0;
+
+                        updateUI();
+                    }
+                } catch (e) {
+                    console.error("JSON parse hatası:", e);
+                }
+            };
+
+            ws.onclose = () => {
+                statusEl.textContent = "❌ Bağlantı koptu - Yeniden bağlanılıyor...";
+                statusEl.style.borderColor = "#ff4444";
+                setTimeout(connectWebSocket, 3000);
+            };
+        }
+
+        window.onload = () => {
+            connectWebSocket();
+        };
+    </script>
+</body>
+
+</html>

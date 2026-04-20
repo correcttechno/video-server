@@ -88,12 +88,154 @@
             left: 30px;
         }
 
-        #map{
-            position:absolute;
-            bottom:0px;
-            right:0px;
+        #map {
+            position: absolute;
+            bottom: 0px;
+            right: 0px;
             height: 20%;
-            width:20%;
+            width: 20%;
+        }
+
+
+
+        .pfd {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 500px;
+            height: 540px;
+            overflow: hidden;
+        }
+
+        .attitude-container {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            width: 300px;
+            height: 300px;
+            border: 10px solid #c0d8ff;
+            border-radius: 50%;
+            background: #0a0f17;
+
+            overflow: hidden;
+        }
+
+        .sky-ground {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(to bottom, #001833 50%, #2f2118 50%);
+            z-index: 1;
+        }
+
+        .ground-detail {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            height: 50%;
+            background: repeating-linear-gradient(40deg, rgba(90, 110, 60, 0.35) 0px, rgba(90, 110, 60, 0.35) 14px, transparent 14px, transparent 30px);
+        }
+
+        .moving-layer {
+            position: absolute;
+            width: 100%;
+            height: 500%;
+            top: -200%;
+            z-index: 2;
+            transition: transform 0.08s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+
+        .horizon-line {
+            position: absolute;
+            top: 50%;
+            width: 100%;
+            height: 6px;
+            background: linear-gradient(to right, transparent, #ffee88 30%, #ffee88 70%, transparent);
+            box-shadow: 0 0 30px #ffee00;
+        }
+
+        .pitch-scale {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 0 45px;
+            color: #fff;
+        }
+
+        .pitch-line {
+            height: 22px;
+            position: relative;
+        }
+
+        .pitch-line::before {
+            content: '';
+            position: absolute;
+            left: 48px;
+            right: 48px;
+            height: 2px;
+            background: #fff;
+        }
+
+        .pitch-line.major::before {
+            height: 4px;
+            background: green;
+        }
+
+        .pitch-line span {
+            position: absolute;
+            left: 0;
+        }
+
+        .aircraft-symbol {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 50px;
+            color: yellow;
+            z-index: 10;
+        }
+
+        .data {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px 20px;
+            color: #0ff;
+            font-size: 24px;
+            border: 2px solid #0ff;
+            border-radius: 10px;
+        }
+
+        .roll-data {
+            top: 50px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .pitch-data {
+            bottom: 50px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .heading {
+            position: absolute;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 40px;
+            color: #0ff;
+        }
+
+        .status {
+            position: absolute;
+            top: 10px;
+            left: 0;
+            color: #0f0;
         }
     </style>
 </head>
@@ -140,6 +282,27 @@
                 <div class="dot"></div>
             </div>
 
+
+            <div class="pfd">
+
+                <div class="attitude-container">
+                    <div class="sky-ground"></div>
+
+                    <div class="moving-layer" id="movingLayer">
+                        <div class="horizon-line"></div>
+                        <div class="pitch-scale" id="pitchScale"></div>
+                    </div>
+
+                    <div class="aircraft-symbol">✈</div>
+                </div>
+
+                <div class="data roll-data">ROLL <span id="rollValue">0</span>°</div>
+                <div class="data pitch-data">PITCH <span id="pitchValue">0</span>°</div>
+                <div class="heading">YAW <span id="headingValue">0</span>°</div>
+                <div class="status" id="status">Bağlanıyor...</div>
+
+            </div>
+
         </div>
     </div>
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
@@ -151,6 +314,10 @@
         // WebSocket
         function connectWS() {
             ws = new WebSocket("ws://video.correcttechno.com:2086");
+
+            ws.onopen = () => {
+                statusEl.textContent = "Bağlandı";
+            };
 
             ws.onmessage = (e) => {
                 const msg = JSON.parse(e.data);
@@ -181,10 +348,28 @@
                 /*   let heading = d.mag.heading || d.attitude.yaw;
                   document.getElementById("compass").style.transform =
                       `translateY(-50%) rotate(${heading}deg)`; */
+
+                try {
+                    let data = JSON.parse(e.data);
+                    data = data.data;
+
+                    if (data.attitude) {
+                        roll = data.attitude.roll || 0;
+                        pitch = data.attitude.pitch || 0;
+                        yaw = data.attitude.yaw || 0;
+
+                        updateUI();
+                    }
+                } catch { }
             };
         }
 
         connectWS();
+
+        window.onload = () => {
+            createPitchScale();
+
+        };
 
         // joystick movement
         function moveStick(id, x, y) {
@@ -259,6 +444,46 @@
             map.setView(currentPos);
         }
 
+
+        let roll = 0, pitch = 0, yaw = 0;
+
+
+        const movingLayer = document.getElementById('movingLayer');
+        const rollEl = document.getElementById('rollValue');
+        const pitchEl = document.getElementById('pitchValue');
+        const headingEl = document.getElementById('headingValue');
+        const statusEl = document.getElementById('status');
+        const pitchScale = document.getElementById('pitchScale');
+
+        function createPitchScale() {
+            let html = '';
+            for (let i = 40; i >= -40; i -= 5) {
+                html += `<div class="pitch-line ${i % 10 === 0 ? 'major' : ''}">
+                    <span>${i}</span>
+                </div>`;
+            }
+            pitchScale.innerHTML = html;
+        }
+
+        function normalizeYaw(rad) {
+            let deg = rad * (180 / Math.PI);
+
+            // -180 ile +180 arası normalize
+            deg = ((deg + 180) % 360 + 360) % 360 - 180;
+
+            return deg;
+        }
+
+        function updateUI() {
+            movingLayer.style.transform =
+                `rotate(${-roll}deg) translateY(${pitch * 6}px)`;
+
+            rollEl.textContent = roll.toFixed(1);
+            pitchEl.textContent = pitch.toFixed(1);
+
+            const yawDeg = normalizeYaw(yaw);
+            headingEl.textContent = yawDeg.toFixed(0);
+        }
 
 
 

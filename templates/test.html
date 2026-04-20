@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PRO Drone Attitude Indicator</title>
+
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700&display=swap');
 
@@ -51,7 +52,6 @@
             overflow: hidden;
         }
 
-        /* Sabit Arka Plan */
         .sky-ground {
             position: absolute;
             width: 100%;
@@ -68,7 +68,6 @@
             background: repeating-linear-gradient(40deg, rgba(90, 110, 60, 0.35) 0px, rgba(90, 110, 60, 0.35) 14px, transparent 14px, transparent 30px);
         }
 
-        /* Hareket Eden Pitch Skalası */
         .moving-layer {
             position: absolute;
             width: 100%;
@@ -81,12 +80,10 @@
         .horizon-line {
             position: absolute;
             top: 50%;
-            left: 0;
             width: 100%;
             height: 6px;
             background: linear-gradient(to right, transparent, #ffee88 30%, #ffee88 70%, transparent);
             box-shadow: 0 0 30px #ffee00;
-            z-index: 6;
         }
 
         .pitch-scale {
@@ -97,17 +94,10 @@
             flex-direction: column;
             justify-content: space-between;
             padding: 0 45px;
-            color: #f0f8ff;
-            font-size: 16px;
-            font-weight: 500;
-            text-shadow: 0 0 8px #000;
-            pointer-events: none;
-            z-index: 5;
+            color: #fff;
         }
 
         .pitch-line {
-            display: flex;
-            align-items: center;
             height: 22px;
             position: relative;
         }
@@ -117,175 +107,66 @@
             position: absolute;
             left: 48px;
             right: 48px;
-            height: 2.5px;
-            background: #ffffff;
-            opacity: 0.75;
+            height: 2px;
+            background: #fff;
         }
 
         .pitch-line.major::before {
-            height: 5px;
-            opacity: 1;
+            height: 4px;
             background: #ffee88;
         }
 
-        .pitch-line .label,
-        .pitch-line .right-label {
-            font-size: 18px;
-            font-weight: 600;
-        }
-
-        .pitch-line .label {
+        .pitch-line span {
             position: absolute;
-            left: 8px;
+            left: 0;
         }
 
-        .pitch-line .right-label {
-            position: absolute;
-            right: 8px;
-        }
-
-        /* ====================== ÜST ROLL SKALASI ====================== */
-        .roll-scale-container {
-            position: absolute;
-            top: 35px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 380px;
-            height: 80px;
-            z-index: 15;
-            pointer-events: none;
-        }
-
-        .roll-scale {
-            position: relative;
-            width: 100%;
-            height: 100%;
-        }
-
-        .roll-tick {
-            position: absolute;
-            bottom: 0;
-            width: 3px;
-            height: 18px;
-            background: #ffffff;
-            transform-origin: bottom center;
-        }
-
-        .roll-tick.major {
-            height: 26px;
-            background: #ffee88;
-            width: 4px;
-        }
-
-        .roll-label {
-            position: absolute;
-            bottom: 32px;
-            color: #ffee88;
-            font-size: 15px;
-            font-weight: 600;
-            text-shadow: 0 0 6px #000;
-        }
-
-        .roll-pointer {
-            position: absolute;
-            top: 48px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 0;
-            height: 0;
-            border-left: 12px solid transparent;
-            border-right: 12px solid transparent;
-            border-bottom: 18px solid #ffff00;
-            filter: drop-shadow(0 0 8px #ffff00);
-            transition: transform 0.08s ease-out;
-            z-index: 16;
-        }
-
-        /* Uçak Sembolü */
         .aircraft-symbol {
             position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            width: 185px;
-            height: 55px;
-            z-index: 20;
+            font-size: 50px;
+            color: yellow;
+            z-index: 10;
         }
 
-        .aircraft-symbol::before {
-            content: '';
-            position: absolute;
-            top: 23px;
-            left: -48px;
-            width: 280px;
-            height: 8px;
-            background: #ffff00;
-            box-shadow: 0 0 22px #ffff00;
-        }
-
-        .aircraft-symbol::after {
-            content: '✈';
-            position: absolute;
-            top: -16px;
-            left: 50%;
-            transform: translateX(-50%);
-            font-size: 54px;
-            color: #ffff00;
-            text-shadow: 0 0 25px #ffff00;
-        }
-
-        /* Değer Kutuları */
         .data {
             position: absolute;
-            background: rgba(10, 25, 35, 0.95);
-            border: 3px solid #00e6c3;
-            color: #00ffdd;
-            padding: 16px 30px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px 20px;
+            color: #0ff;
+            font-size: 24px;
+            border: 2px solid #0ff;
             border-radius: 10px;
-            font-size: 29px;
-            font-weight: 700;
-            text-align: center;
-            box-shadow: 0 0 30px rgba(0, 230, 195, 0.6);
-            min-width: 180px;
         }
 
         .roll-data {
-            top: 140px;
+            top: 50px;
             left: 50%;
             transform: translateX(-50%);
         }
 
         .pitch-data {
-            bottom: 125px;
+            bottom: 120px;
             left: 50%;
             transform: translateX(-50%);
         }
 
         .heading {
             position: absolute;
-            bottom: 42px;
+            bottom: 40px;
             left: 50%;
             transform: translateX(-50%);
-            background: rgba(5, 18, 28, 0.95);
-            border: 4px solid #00ffdd;
-            color: #00ffff;
-            font-size: 48px;
-            padding: 12px 58px;
-            border-radius: 12px;
-            letter-spacing: 8px;
-            box-shadow: 0 0 35px rgba(0, 255, 220, 0.5);
+            font-size: 40px;
+            color: #0ff;
         }
 
         .status {
             position: absolute;
-            top: 25px;
-            right: 25px;
-            padding: 12px 22px;
-            background: rgba(0, 0, 0, 0.85);
-            border: 2px solid #00ffcc;
-            border-radius: 8px;
-            color: #00ffcc;
-            font-size: 17px;
+            top: 10px;
+            right: 10px;
+            color: #0f0;
         }
     </style>
 </head>
@@ -293,135 +174,100 @@
 <body>
 
     <div class="pfd">
-        <div class="attitude-container">
-            <!-- Sabit Arka Plan -->
-            <div class="sky-ground">
-                <div class="ground-detail"></div>
-            </div>
 
-            <!-- Hareket Eden Pitch Skalası -->
+        <div class="attitude-container">
+            <div class="sky-ground"></div>
+
             <div class="moving-layer" id="movingLayer">
                 <div class="horizon-line"></div>
                 <div class="pitch-scale" id="pitchScale"></div>
             </div>
 
-            <!-- Sabit Uçak Sembolü -->
-            <div class="aircraft-symbol"></div>
+            <div class="aircraft-symbol">✈</div>
         </div>
 
-        <!-- ÜST ROLL SKALASI -->
-        <div class="roll-scale-container">
-            <div class="roll-scale" id="rollScale"></div>
-            <div class="roll-pointer" id="rollPointer"></div>
-        </div>
-
-        <div class="data roll-data">ROLL<br><span id="rollValue">0.0</span>°</div>
-        <div class="data pitch-data">PITCH<br><span id="pitchValue">0.0</span>°</div>
-        <div class="heading">HDG <span id="headingValue">000</span>°</div>
-
+        <div class="data roll-data">ROLL <span id="rollValue">0</span>°</div>
+        <div class="data pitch-data">PITCH <span id="pitchValue">0</span>°</div>
+        <div class="heading">YAW <span id="headingValue">0</span>°</div>
         <div class="status" id="status">Bağlanıyor...</div>
+
     </div>
 
     <script>
         let roll = 0, pitch = 0, yaw = 0;
-        let ws = null;
+        let ws;
 
         const movingLayer = document.getElementById('movingLayer');
-        const rollPointer = document.getElementById('rollPointer');
         const rollEl = document.getElementById('rollValue');
         const pitchEl = document.getElementById('pitchValue');
         const headingEl = document.getElementById('headingValue');
         const statusEl = document.getElementById('status');
         const pitchScale = document.getElementById('pitchScale');
-        const rollScale = document.getElementById('rollScale');
 
-        // Pitch Skalasını oluştur
         function createPitchScale() {
             let html = '';
             for (let i = 40; i >= -40; i -= 5) {
-                const isMajor = i % 10 === 0;
-                html += `
-          <div class="pitch-line ${isMajor ? 'major' : ''}">
-            ${isMajor ? `<span class="label">${i > 0 ? '+' : ''}${i}</span>` : ''}
-            ${isMajor ? `<span class="right-label">${i > 0 ? '+' : ''}${i}°</span>` : ''}
-          </div>`;
+                html += `<div class="pitch-line ${i % 10 === 0 ? 'major' : ''}">
+                    <span>${i}</span>
+                </div>`;
             }
             pitchScale.innerHTML = html;
         }
 
-        // Üst Roll Skalasını oluştur (±45°)
-        function createRollScale() {
-            let html = '';
-            const angles = [-45, -30, -20, -10, 0, 10, 20, 30, 45];
+        function normalizeYaw(rad) {
+            let deg = rad * (180 / Math.PI);
 
-            angles.forEach(angle => {
-                const leftPos = 50 + (angle / 45) * 48;   // yüzde cinsinden konum
-                const isMajor = Math.abs(angle) === 0 || Math.abs(angle) === 30 || Math.abs(angle) === 45;
+            // -180 ile +180 arası normalize
+            deg = ((deg + 180) % 360 + 360) % 360 - 180;
 
-                html += `
-          <div class="roll-tick ${isMajor ? 'major' : ''}" 
-               style="left: ${leftPos}%; transform: rotate(${angle}deg);"></div>`;
-
-                if (isMajor) {
-                    html += `
-            <div class="roll-label" style="left: ${leftPos}%; transform: translateX(-50%);">
-              ${angle === 0 ? '0' : angle}°
-            </div>`;
-                }
-            });
-            rollScale.innerHTML = html;
+            return deg;
         }
 
         function updateUI() {
-            // Pitch hareketi
-            const rotateZ = -roll;
-            const translateY = pitch * 6.8;
-            movingLayer.style.transform = `rotate(${rotateZ}deg) translateY(${translateY}px)`;
+            movingLayer.style.transform =
+                `rotate(${-roll}deg) translateY(${pitch * 6}px)`;
 
-            // Roll pointer hareketi (üst skala)
-            rollPointer.style.transform = `translateX(-50%) rotate(${roll}deg)`;
-
-            // Değerler
             rollEl.textContent = roll.toFixed(1);
             pitchEl.textContent = pitch.toFixed(1);
-            headingEl.textContent = ((yaw * (180 / Math.PI)) % 360).toFixed(0).padStart(3, '0');
+
+            const yawDeg = normalizeYaw(yaw);
+            headingEl.textContent = yawDeg.toFixed(0);
         }
 
         function connectWebSocket() {
             ws = new WebSocket("ws://video.correcttechno.com:2086");
 
             ws.onopen = () => {
-                statusEl.textContent = "✅ Bağlandı - Gerçek Zamanlı";
-                statusEl.style.borderColor = "#00ff00";
+                statusEl.textContent = "Bağlandı";
             };
 
-            ws.onmessage = (event) => {
+            ws.onmessage = (e) => {
                 try {
-                    var data = JSON.parse(event.data);
+                    let data = JSON.parse(e.data);
                     data = data.data;
+
                     if (data.attitude) {
                         roll = data.attitude.roll || 0;
                         pitch = data.attitude.pitch || 0;
                         yaw = data.attitude.yaw || 0;
-                        console.log(yaw);
+
                         updateUI();
                     }
-                } catch (e) { }
+                } catch { }
             };
 
             ws.onclose = () => {
-                statusEl.textContent = "❌ Bağlantı koptu - Yeniden bağlanılıyor...";
-                statusEl.style.borderColor = "#ff6666";
-                setTimeout(connectWebSocket, 2500);
+                statusEl.textContent = "Yeniden bağlanıyor...";
+                setTimeout(connectWebSocket, 2000);
             };
         }
 
         window.onload = () => {
             createPitchScale();
-            createRollScale();
             connectWebSocket();
         };
     </script>
+
 </body>
 
 </html>
